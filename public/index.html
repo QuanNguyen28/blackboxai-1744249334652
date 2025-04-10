@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Location Tracker - Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <h1 class="text-3xl font-bold">Location Tracker Dashboard</h1>
+            <p class="mt-2 text-blue-100">Monitor your friend's location in real-time</p>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Tracking Link Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Share Tracking Link</h2>
+            <div class="flex items-center space-x-4">
+                <input type="text" id="trackingLink" readonly 
+                    class="flex-1 p-3 border rounded-lg bg-gray-50" 
+                    value="">
+                <button onclick="copyTrackingLink()" 
+                    class="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors">
+                    <i class="fas fa-copy mr-2"></i>Copy Link
+                </button>
+            </div>
+        </div>
+
+        <!-- Location Updates Section -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">Location Updates</h2>
+            <div id="locationStatus" class="text-gray-500 italic mb-4">
+                Waiting for location updates...
+            </div>
+            <div id="locationData" class="hidden">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-sm font-medium text-gray-500">Latitude</h3>
+                        <p id="latitude" class="text-lg font-semibold">-</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-sm font-medium text-gray-500">Longitude</h3>
+                        <p id="longitude" class="text-lg font-semibold">-</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-sm font-medium text-gray-500">Last Update</h3>
+                        <p id="timestamp" class="text-lg font-semibold">-</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Socket.io
+        const socket = io();
+        
+        // Update tracking link
+        const trackingLink = document.getElementById('trackingLink');
+        trackingLink.value = `${window.location.origin}/track`;
+
+        // Copy tracking link function
+        function copyTrackingLink() {
+            trackingLink.select();
+            document.execCommand('copy');
+            alert('Tracking link copied to clipboard!');
+        }
+
+        // Handle location updates
+        socket.on('locationUpdate', (data) => {
+            document.getElementById('locationStatus').classList.add('hidden');
+            document.getElementById('locationData').classList.remove('hidden');
+            
+            document.getElementById('latitude').textContent = data.latitude.toFixed(6);
+            document.getElementById('longitude').textContent = data.longitude.toFixed(6);
+            document.getElementById('timestamp').textContent = new Date().toLocaleTimeString();
+        });
+    </script>
+</body>
+</html>
