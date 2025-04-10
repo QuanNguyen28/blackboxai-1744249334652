@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Share Your Location</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .hero {
+            background-image: url('https://images.pexels.com/photos/1167355/pexels-photo-1167355.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940');
+            background-size: cover;
+            background-position: center;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Hero Section -->
+    <div class="hero relative">
+        <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+        <div class="relative container mx-auto px-4 py-16">
+            <div class="text-center text-white">
+                <h1 class="text-4xl md:text-5xl font-bold mb-4">Location Sharing</h1>
+                <p class="text-xl text-gray-200 mb-8">Share your real-time location with trusted contacts</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Section -->
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-2xl mx-auto">
+            <!-- Permission Request -->
+            <div id="permissionRequest" class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <div class="text-center">
+                    <i class="fas fa-location-dot text-4xl text-blue-500 mb-4"></i>
+                    <h2 class="text-2xl font-semibold mb-4">Location Permission Required</h2>
+                    <p class="text-gray-600 mb-6">
+                        To share your location, please allow access to your device's location services. Your location data will only be shared while this page is open.
+                    </p>
+                    <button onclick="startTracking()" 
+                            class="bg-blue-500 text-white px-8 py-3 rounded-lg hover:bg-blue-600 transition-colors">
+                        Start Sharing Location
+                    </button>
+                </div>
+            </div>
+
+            <!-- Status Messages -->
+            <div id="trackingStatus" class="hidden bg-white rounded-lg shadow-md p-6">
+                <div class="text-center">
+                    <div id="trackingActive" class="hidden">
+                        <i class="fas fa-broadcast-tower text-4xl text-green-500 mb-4"></i>
+                        <h2 class="text-2xl font-semibold text-green-500 mb-2">Location Sharing Active</h2>
+                        <p class="text-gray-600">Your location is being shared in real-time</p>
+                    </div>
+                    <div id="trackingError" class="hidden">
+                        <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
+                        <h2 class="text-2xl font-semibold text-red-500 mb-2">Location Sharing Error</h2>
+                        <p id="errorMessage" class="text-gray-600"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let watchId = null;
+
+        function startTracking() {
+            if (!navigator.geolocation) {
+                showError("Geolocation is not supported by your browser");
+                return;
+            }
+
+            document.getElementById('permissionRequest').classList.add('hidden');
+            document.getElementById('trackingStatus').classList.remove('hidden');
+
+            watchId = navigator.geolocation.watchPosition(
+                // Success callback
+                (position) => {
+                    const locationData = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    socket.emit('locationUpdate', locationData);
+                    
+                    document.getElementById('trackingError').classList.add('hidden');
+                    document.getElementById('trackingActive').classList.remove('hidden');
+                },
+                // Error callback
+                (error) => {
+                    let errorMessage = "An unknown error occurred";
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage = "Location permission was denied. Please enable location access in your browser settings.";
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage = "Location information is unavailable.";
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage = "Location request timed out.";
+                            break;
+                    }
+                    showError(errorMessage);
+                },
+                // Options
+                {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
+                }
+            );
+        }
+
+        function showError(message) {
+            document.getElementById('trackingActive').classList.add('hidden');
+            document.getElementById('trackingError').classList.remove('hidden');
+            document.getElementById('errorMessage').textContent = message;
+        }
+
+        // Clean up when page is closed
+        window.onbeforeunload = function() {
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+            }
+        };
+    </script>
+</body>
+</html>
